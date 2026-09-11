@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="WireGuardServerManager.App/WireGuardServerManager.App.csproj" />
+  <Project Path="WireGuardServerManager.Core/WireGuardServerManager.Core.csproj" />
+  <Project Path="WireGuardServerManager.Tests/WireGuardServerManager.Tests.csproj" />
+</Solution>

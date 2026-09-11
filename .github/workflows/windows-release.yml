@@ -1,0 +1,58 @@
+name: Windows release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+      - "beta-*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Restore
+        run: dotnet restore WireGuardServerManager.slnx
+      - name: Test
+        run: dotnet test WireGuardServerManager.Tests/WireGuardServerManager.Tests.csproj --configuration Release --no-restore
+      - name: Publish Windows x64
+        run: dotnet publish WireGuardServerManager.App/WireGuardServerManager.App.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --output release/windows-x64
+      - name: Package and checksum
+        shell: pwsh
+        run: |
+          Compress-Archive -Path release/windows-x64/WireGuardServerManager.exe -DestinationPath WireGuardServerManager-Windows-x64.zip
+          $hash = (Get-FileHash WireGuardServerManager-Windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  WireGuardServerManager-Windows-x64.zip" | Set-Content WireGuardServerManager-Windows-x64.zip.sha256 -Encoding ascii
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WireGuardServerManager-Windows-x64
+          path: |
+            WireGuardServerManager-Windows-x64.zip
+            WireGuardServerManager-Windows-x64.zip.sha256
+      - name: Attach tagged build to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: WireGuard Server Manager Beta 0.9.0
+          prerelease: true
+          body: |
+            Windows 10/11 x64 test release.
+
+            - Simplified Chinese and English interface
+            - Multi-server WireGuard peer management
+            - Safe remote UDP port switching
+            - Folder-wide Clash Verge YAML synchronization
+            - Windows only; no Android package or custom artwork
+
+            This is a beta build. Read the bilingual guide and verify the ZIP with the attached SHA-256 file before use.
+          files: |
+            WireGuardServerManager-Windows-x64.zip
+            WireGuardServerManager-Windows-x64.zip.sha256
